@@ -1,6 +1,9 @@
 package password
 
 import (
+	"fmt"
+	"net/http"
+
 	"authen.agnoshealth.com/domain"
 	"github.com/gin-gonic/gin"
 )
@@ -11,10 +14,12 @@ type handler struct {
 
 func (h *handler) GetMinStep() gin.HandlerFunc {
 	return func (c *gin.Context) {
-		var req StrongPasswordStepRequest
-		if c.ShouldBind(&req) != nil  {
-			c.String(500, "Invalid input")
-		}
+		req := new(StrongPasswordStepRequest)
+		if err := c.Bind(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+			return
+	}
+		fmt.Println(req)
 		pwd := domain.NewPassword(req.InitPassword)
 		numStep := pwd.GetMinSteps()
 		c.JSON(200, StrongPasswordStepResponse{

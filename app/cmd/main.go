@@ -13,12 +13,15 @@ import (
 )
 
 func main() {
-	err := godotenv.Load()
+	godotenv.Load(".env")
 	postgresHostname := os.Getenv("POSTGRES_HOST")
 	postgresUser := os.Getenv("POSTGRES_USER")
 	postgresPwd := os.Getenv("POSTGRES_PASSWORD")
 	dbName :=  os.Getenv("POSTGRES_DB")
-	db, err := sql.Open("postgres",fmt.Sprintf("postgresql://%s:%s@%s/%s",postgresUser, postgresPwd, postgresHostname, dbName))
+
+	conntectionString := fmt.Sprintf("postgresql://%s:%s@%s/%s?sslmode=disable",postgresUser, postgresPwd, postgresHostname, dbName)
+	fmt.Println("efdsgaerbgwfgd",postgresUser)
+	db, err := sql.Open("postgres",conntectionString)
 	if err != nil {
 		panic(err)
 	}
@@ -28,5 +31,5 @@ func main() {
 	passwordHandler := password.Wire()
 	r.Use(logMiddleware.LogReqRes())
 	r.POST("/api/strong_password_steps", passwordHandler.GetMinStep())
-	r.Run(":8000")
+	r.Run(":8001")
 }
