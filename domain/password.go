@@ -1,36 +1,44 @@
-package aggregate
+package domain
 
-import "unicode"
+import (
+	"context"
+	"unicode"
 
-type password struct {
-	plainTextPassword string
-}
-type LengthCheckResult int8
-
-func NewPassword(plainTextPassword string) password {
-	return password{
-		plainTextPassword: plainTextPassword,
-	}
-}
-
-func B2i(b bool) int {
-	if b {
-		return 1
-	}
-	return 0
-}
+	"github.com/gin-gonic/gin"
+)
 
 const (
 	PasswordTooShort LengthCheckResult = iota
 	PasswordTooLong
 	PasswordGoodLength
 )
+type (
+ Password struct {
+	plainTextPassword string
+}
+ LengthCheckResult int8
 
-func (p *password) length() int {
+PasswordService interface {
+  GetMinStep(ctx context.Context, pwd string) (int,error)
+  
+}
+PasswordHandler interface {
+  GetMinStep() gin.HandlerFunc
+}
+
+)
+
+func NewPassword(plainTextPassword string) Password {
+	return Password{
+		plainTextPassword: plainTextPassword,
+	}
+}
+
+func (p *Password) length() int {
 	return len(p.plainTextPassword)
 }
 
-func (p *password) findRepeatingCharSequence() []int {
+func (p *Password) findRepeatingCharSequence() []int {
 	var repeatingCounts []int
 	input := p.plainTextPassword
 	count := 1
@@ -38,7 +46,7 @@ func (p *password) findRepeatingCharSequence() []int {
 		if input[i] == input[i-1] {
 			count++
 		} else {
-			if count > 3 {
+			if count >= 3 {
 				repeatingCounts = append(repeatingCounts, count)
 			}
 			count = 1
@@ -50,7 +58,7 @@ func (p *password) findRepeatingCharSequence() []int {
 	return repeatingCounts
 }
 
-func (p *password) checkLengthRule() LengthCheckResult {
+func (p *Password) checkLengthRule() LengthCheckResult {
 	length := p.length()
 	if length >= 20 {
 		return PasswordTooLong
@@ -61,7 +69,7 @@ func (p *password) checkLengthRule() LengthCheckResult {
 		return PasswordGoodLength
 	}
 }
-func (p *password) containsLowerCase() bool {
+func (p *Password) containsLowerCase() bool {
 	for _, char := range p.plainTextPassword {
 		if unicode.IsLower(char) {
 			return true
@@ -70,7 +78,7 @@ func (p *password) containsLowerCase() bool {
 	return false
 }
 
-func (p *password) containsUpperCase() bool {
+func (p *Password) containsUpperCase() bool {
 	for _, char := range p.plainTextPassword {
 		if unicode.IsUpper(char) {
 			return true
@@ -79,7 +87,7 @@ func (p *password) containsUpperCase() bool {
 	return false
 }
 
-func (p *password) containsDigit() bool {
+func (p *Password) containsDigit() bool {
 	for _, char := range p.plainTextPassword {
 		if unicode.IsDigit(char) {
 			return true
@@ -88,14 +96,13 @@ func (p *password) containsDigit() bool {
 	return false
 }
 
-func (p *password) checkCase() int {
-	return B2i(p.containsDigit()) + B2i(p.containsLowerCase()) + B2i(p.containsUpperCase())
+func (p *Password) checkCase() int {
+	return B2i(!p.containsDigit()) + B2i(!p.containsLowerCase()) + B2i(!p.containsUpperCase())
 }
 
-func (p *password) GetMinSteps() int {
+func (p *Password) GetMinSteps() int {
 	fixRep := 0
 	repeateSeq := p.findRepeatingCharSequence()
-
 	for _, s := range repeateSeq {
 		fixRep += s / 3
 	}
@@ -111,5 +118,12 @@ func (p *password) GetMinSteps() int {
 
 	fixCase := p.checkCase()
 
+	if p.checkLengthRule() == PasswordTooLong && fixCase > 0 {
+		if fixLength > fixRep {
+			return fixLength + fixCase
+		} 
+		return max(fixRep - fixLength ,fixCase) + fixLength
+		
+	} 
 	return max(fixRep, fixLength, fixCase)
 }

@@ -1,7 +1,25 @@
 package main
 
-import "fmt"
+import (
+	"database/sql"
+	"net/http"
+
+	"authen.agnoshealth.com/pkg/log"
+	"authen.agnoshealth.com/pkg/password"
+	"github.com/gin-gonic/gin"
+)
 
 func main() {
-	fmt.Println(7 / 3)
+
+	db, err := sql.Open("postgres","postgresql://pwdapi@logdb")
+	if err != nil {
+		panic(err)
+	}
+	defer db.Close()
+	r := gin.New()
+	logMiddleware := log.Wire(db)
+	passwordHandler := password.Wire()
+	r.Use(logMiddleware.LogReqRes())
+	r.POST("/api/strong_password_steps", passwordHandler.GetMinStep())
+	http.ListenAndServe(":8000", nil)
 }
