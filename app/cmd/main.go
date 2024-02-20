@@ -31,5 +31,5 @@ func main() {
 	passwordHandler := password.Wire()
 	r.Use(logMiddleware.LogReqRes())
 	r.POST("/api/strong_password_steps", passwordHandler.GetMinStep())
-	r.Run(":8001")
+	r.Run(":8000")
 }

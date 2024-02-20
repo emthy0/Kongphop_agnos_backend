@@ -6,6 +6,7 @@ import (
 
 	"authen.agnoshealth.com/domain"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 )
 
 type handler struct {
@@ -15,7 +16,7 @@ type handler struct {
 func (h *handler) GetMinStep() gin.HandlerFunc {
 	return func (c *gin.Context) {
 		req := new(StrongPasswordStepRequest)
-		if err := c.Bind(&req); err != nil {
+		if err := c.ShouldBindBodyWith(&req, binding.JSON); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 			return
 	}

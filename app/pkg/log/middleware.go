@@ -3,10 +3,12 @@ package log
 import (
 	"bytes"
 	"context"
+	"fmt"
 	"log"
 
 	"authen.agnoshealth.com/domain"
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
 )
 
 type middleware struct {
@@ -15,12 +17,13 @@ type middleware struct {
 
 func (m *middleware) LogReqRes() gin.HandlerFunc {
   return func(c *gin.Context) {
-    // requestBody, err := io.ReadAll(c.Request.Body)
-    // if err != nil {
-    //     c.JSON(http.StatusInternalServerError, gin.H{"error": "Error reading request body"})
-    //     c.Abort()
-    //     return
-    // }
+    json := make(map[string]interface{})
+    err := c.ShouldBindBodyWith(&json, binding.JSON)
+		var req string
+		if err != nil && len(json) == 0 {
+			req = ""
+		}
+		req = fmt.Sprintf("%v", json)
     // requestString := requestBody.String()
     blw := &bodyLogWriter{body: bytes.NewBufferString(""), ResponseWriter: c.Writer}
     c.Writer = blw
@@ -34,11 +37,11 @@ func (m *middleware) LogReqRes() gin.HandlerFunc {
 
     // Save the request and response to the database
     logst := domain.Log{
-      // Request: string(requestBody),
+      Request: req,
       Response: responseBody,
       Code: statusCode,
     }
-    err := m.svc.WriteLog(context.Background(),&logst)
+    err = m.svc.WriteLog(context.Background(),&logst)
     if err != nil {
         log.Println("Error saving log entry:", err)
     }
